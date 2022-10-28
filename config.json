@@ -1,0 +1,7 @@
+{
+  "mode": "DEBUG",
+  "FPS": 3,
+  "PORT": 13,
+  "BAUDRATE": 38400,
+  "VEL_LIST": [0, 1, 10, 100, 1000]
+}
