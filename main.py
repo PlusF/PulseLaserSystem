@@ -14,7 +14,6 @@ from ConfigLoader import ConfigLoader
 WIDTH_BUTTON = 7
 SIZE_CANVAS = 400
 SIZE_CONT = 15
-DT = 200
 FONT = ('游ゴシック', 16)
 
 
@@ -28,7 +27,7 @@ def get_color_by_float(value: float):
 
 
 class Application(tk.Frame):
-    def __init__(self, master=None, cl: ConfigLoader = None):
+    def __init__(self, master=None, config='./config.json'):
         super().__init__(master)
         self.master.title('Stage Controller')
 
@@ -39,11 +38,7 @@ class Application(tk.Frame):
         self.style.configure('.', font=FONT)
         self.style.configure("stop.TButton", activeforeground='red', foreground='red')
 
-        self.cl = cl
-        if cl is not None:
-            self.dt = cl.dt
-        else:
-            self.dt = DT
+        self.cl = ConfigLoader(config)
 
         self.open_port()
 
@@ -153,7 +148,7 @@ class Application(tk.Frame):
         self.rank_pre = self.oval.get_rank()
         self.direction_pre = copy.copy(self.oval.get_direction())
 
-        self.master.after(self.dt, self.update)
+        self.master.after(self.cl.dt, self.update)
 
     def check_and_move(self):
         # 図形から操作された場合を検知
@@ -186,7 +181,7 @@ class Application(tk.Frame):
         if vel == 0:
             return
 
-        if self.device is None:
+        if self.cl.mode == 'DEBUG':
             print(f'move right by {vel} \u03bcm/s')
         else:
             self.device.move_velocity('x', vel)
@@ -201,7 +196,7 @@ class Application(tk.Frame):
         if vel == 0:
             return
 
-        if self.device is None:
+        if self.cl.mode == 'DEBUG':
             print(f'move left by {vel} \u03bcm/s')
         else:
             self.device.move_velocity('x', vel)
@@ -217,7 +212,7 @@ class Application(tk.Frame):
         if vel == 0:
             return
 
-        if self.device is None:
+        if self.cl.mode == 'DEBUG':
             print(f'move top by {vel} \u03bcm/s')
         else:
             self.device.move_velocity('y', vel)
@@ -233,14 +228,14 @@ class Application(tk.Frame):
         if vel == 0:
             return
 
-        if self.device is None:
+        if self.cl.mode == 'DEBUG':
             print(f'move bottom by {vel} \u03bcm/s')
         else:
             self.device.move_velocity('y', vel)
 
     def stop(self, event=None):
         # xy方向に停止命令を出す
-        if self.device is None:
+        if self.cl.mode == 'DEBUG':
             print('stop xy')
         else:
             self.device.stop()
@@ -249,14 +244,14 @@ class Application(tk.Frame):
         # 現在位置を更新
         # シリアル通信で受信する必要があるため，mainloopとは別threadで処理する．
         while True:
-            if self.device is None:
+            if self.cl.mode == 'DEBUG':
                 self.x_cur.set(round(self.x_cur.get() + 0.015, 3))
                 self.y_cur.set(round(self.y_cur.get() + 0.015, 3))
             else:
                 x, y = self.device.get_position()
                 self.x_cur.set(round(x * 1000, 3))  # umに変換
                 self.y_cur.set(round(y * 1000, 3))  # umに変換
-            time.sleep(self.dt * 0.001)
+            time.sleep(self.cl.dt * 0.001)
 
     def exec_command(self):
         command_is_ok, command = self.check_command()
@@ -306,47 +301,44 @@ class Application(tk.Frame):
         else:
             return False, None
 
-    def get_vertex(self, shape, x, y):
-        x0, y0 = self.x_cur.get(), self.y_cur.get()
-        points = []
-        if shape == 'line':
-            points.append([x0 + x, y0 + y])
-        elif shape == 'rectangle':
-            points.append([x0 + x, y0])
-            points.append([x0 + x, y0 + y])
-            points.append([x0, y0 + y])
-            points.append([x0, y0])
-
-        return points
-
     def move_shape(self, shape, x, y, vel):
-        if self.device is None:
+        if self.cl.mode == 'DEBUG':
             print(shape, x, y, vel)
             return
 
+        x0, y0 = self.x_cur.get(), self.y_cur.get()
         self.device.set_velocity_all(vel)
 
-        points = self.get_vertex(shape, x, y)
-        for point in points:
-            if point[0] == 0:
-                axis = 'y'
-                pos = point[1] * 1e-3  # mmに変換
-                delay = abs(y) / vel
+        if shape == 'line':
+            if x != 0:
+                direction = ['x']
+                points = [x0 + x]
             else:
-                axis = 'x'
-                pos = point[0] * 1e-3  # mmに変換
+                direction = ['y']
+                points = [y0 + y]
+        elif shape == 'rectangle':
+            points = [[x0 + x],
+                      [y0 + y],
+                      [x0],
+                      [y0]]
+            direction = ['x', 'y', 'x', 'y']
+        else:
+            return
+
+        for d, point in zip(direction, points):
+            if d == 'x':
                 delay = abs(x) / vel
+            else:
+                delay = abs(y) / vel
             self.device.move_abs(axis, pos)
             time.sleep(delay)
 
 
 def main():
-    cl = ConfigLoader('./config.json')
-
     root = tk.Tk()
     root.option_add("*font", FONT)  # こうしないとコンボボックスのフォントが変わらない
     root.protocol('WM_DELETE_WINDOW', (lambda: 'pass')())  # QUITボタン以外の終了操作を許可しない
-    app = Application(master=root, cl=cl)
+    app = Application(master=root, config='./config.json')
     app.mainloop()
 
     print('Successfully finished the controller program.')
