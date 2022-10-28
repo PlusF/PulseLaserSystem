@@ -312,7 +312,10 @@ class Application(tk.Frame):
         if shape == 'line':
             points.append([x0 + x, y0 + y])
         elif shape == 'rectangle':
-            points.append('')
+            points.append([x0 + x, y0])
+            points.append([x0 + x, y0 + y])
+            points.append([x0, y0 + y])
+            points.append([x0, y0])
 
         return points
 
