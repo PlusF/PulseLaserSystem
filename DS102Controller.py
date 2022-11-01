@@ -84,13 +84,10 @@ class DS102Controller:
 
     def set_velocity_max_all(self):
         """
-        set Fspeed0 vel
-        :param vel: velocity you want to set
-        :type vel: int
+        set Fspeed0 vel all
         :return:
         """
-        for axis in ['x', 'y']:
-            self.set_velocity(axis, 999999)  # TODO: ほんとか？
+        self.set_velocity_all(999999)  # TODO: ほんとか？
 
     def select_speed_table(self, axis: str, speed: int):
         """
@@ -143,12 +140,20 @@ class DS102Controller:
 
     def move_abs(self, axis: str, pos: float):
         """
-
         :param axis: 'x' or 'y'
-        :param pos: absolute position
+        :param pos: absolute position [mm]
         :return:
         """
         msg = axis2msg(axis) + f'GOABS {pos}'
+        self.ser.send(msg)
+
+    def move_line(self, x: float, y: float):
+        """
+        :param x: absolute position of x [mm]
+        :param y: absolute position of y [mm]
+        :return:
+        """
+        msg = f'GOLineA X{x} Y{y}'
         self.ser.send(msg)
 
     def stop_axis(self, axis: str):

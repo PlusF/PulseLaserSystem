@@ -285,8 +285,6 @@ class Application(tk.Frame):
                 y = float(command[2])
             except  ValueError:
                 command_is_ok = False
-            if command[0] == 'line' and x != 0 and y != 0:
-                command_is_ok = False
             # 速度
             if len(command) == 4:
                 try:
@@ -310,28 +308,20 @@ class Application(tk.Frame):
         self.device.set_velocity_all(vel)
 
         if shape == 'line':
-            if x != 0:
-                direction = ['x']
-                points = [x0 + x]
-            else:
-                direction = ['y']
-                points = [y0 + y]
+            points = [[x0 + x, y0 - y]]  # この系のy軸は下向きが正
+            delays = [max(abs(x), abs(y)) / vel]
         elif shape == 'rectangle':
-            points = [[x0 + x],
-                      [y0 + y],
-                      [x0],
-                      [y0]]
-            direction = ['x', 'y', 'x', 'y']
+            points = [[x0 + x, y0],
+                      [x0 + x, y0 - y],  # この系のy軸は下向きが正
+                      [x0, y0 - y],  # この系のy軸は下向きが正
+                      [x0, y0]]
+            delays = [max(abs(x), abs(y)) / vel]
         else:
             return
 
-        for d, point in zip(direction, points):
-            if d == 'x':
-                delay = abs(x) / vel
-            else:
-                delay = abs(y) / vel
-            self.device.move_abs(axis, pos)
-            time.sleep(delay)
+        for (x, y), delay in zip(points, delays):
+            self.device.move_line(x * 0.001, y * 0.001)
+            time.sleep(delay + 0.3)
 
 
 def main():
