@@ -1,7 +1,6 @@
 # PulseLaserSystem
-For now, this is the stage controller of the pulse laser system.
-
-The goal of this project is to controll both the stage and the pulse laser.
+Controller of the pulse laser system.
+You can controll both the XY stage and pulse laser.
 
 # Controller part
 To controll the XY stage, you can use the joystock-like object or the buttons.
