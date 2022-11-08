@@ -141,11 +141,14 @@ class Application(tk.Frame):
         self.button_stop_laser = ttk.Button(self.frame_laser, text='STOP', command=self.stop_laser, style='stop.TButton')
         self.msg_laser = tk.StringVar(value='Now: 0 Hz (available range: 16~10000 Hz)')
         self.label_msg_frq = ttk.Label(self.frame_laser, textvariable=self.msg_laser)
+        self.is_auto_emission = tk.BooleanVar(value=False)
+        self.check_auto_emission = tk.Checkbutton(self.frame_laser, text="Auto Emission", command=self.change_auto_emission, variable=self.is_auto_emission)
         self.entry_frq.grid(row=0, column=0)
         self.label_hz.grid(row=0, column=1)
         self.button_emit_laser.grid(row=0, column=2)
         self.button_stop_laser.grid(row=0, column=3)
         self.label_msg_frq.grid(row=1, column=0, columnspan=4)
+        self.check_auto_emission.grid(row=2, column=0, columnspan=4)
 
     def create_thread(self):
         # update_positionの受信待ちで画面がフリーズしないようthreadを立てる
@@ -204,6 +207,8 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print(f'move right by {vel} \u03bcm/s')
         else:
+            if self.is_auto_emission.get():  # 自動照射モード
+                self.emit()
             self.stage.move_velocity('x', vel)
 
     def move_left(self, event=None):
@@ -219,6 +224,8 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print(f'move left by {vel} \u03bcm/s')
         else:
+            if self.is_auto_emission.get():  # 自動照射モード
+                self.emit()
             self.stage.move_velocity('x', vel)
 
     def move_top(self, event=None):
@@ -235,6 +242,8 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print(f'move top by {vel} \u03bcm/s')
         else:
+            if self.is_auto_emission.get():  # 自動照射モード
+                self.emit()
             self.stage.move_velocity('y', vel)
 
     def move_bottom(self, event=None):
@@ -251,6 +260,8 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print(f'move bottom by {vel} \u03bcm/s')
         else:
+            if self.is_auto_emission.get():  # 自動照射モード
+                self.emit()
             self.stage.move_velocity('y', vel)
 
     def stop_stage(self, event=None):
@@ -258,6 +269,8 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print('stop xy')
         else:
+            if self.is_auto_emission.get():  # 自動照射モード
+                self.stop_laser()
             self.stage.stop()
 
     def update_position(self):
@@ -339,26 +352,41 @@ class Application(tk.Frame):
         else:
             return
 
+        if self.is_auto_emission.get():  # 自動照射モード
+            self.emit()
+
         for (x, y), delay in zip(points, delays):
             self.stage.move_line(x * 0.001, y * 0.001)
             time.sleep(delay + 0.3)
 
-    def emit(self):
-        self.set_frq()
+        if self.is_auto_emission.get():  # 自動照射モード
+            self.stop_laser()
 
-    def set_frq(self):
+    def emit(self):
         frq = self.frq.get()
         if not 16 <= frq <= 10000:
             self.msg_laser.set('Frequency must be 16~10000 Hz.')
             return
         if self.cl.mode == 'RELEASE':
             self.laser.set_frq(frq)
+        elif self.cl.mode == 'DEBUG':
+            print('Emit')
         self.msg_laser.set(f'Now: {frq} Hz (available range: 16~10000 Hz)')
 
     def stop_laser(self):
         if self.cl.mode == 'RELEASE':
             self.laser.stop()
+        elif self.cl.mode == 'DEBUG':
+            print('Stop laser')
         self.msg_laser.set('Now: 0 Hz (available range: 16~10000 Hz)')
+
+    def change_auto_emission(self):
+        if self.is_auto_emission.get():
+            self.button_emit_laser.config(state=tk.DISABLED)
+            self.button_stop_laser.config(state=tk.DISABLED)
+        else:
+            self.button_emit_laser.config(state=tk.ACTIVE)
+            self.button_stop_laser.config(state=tk.ACTIVE)
 
 
 def main():
