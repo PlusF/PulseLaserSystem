@@ -7,12 +7,13 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from DS102Controller import MySerial, DS102Controller
+from PulseLaserController import PulseLaserController
 from CustomTkObject import MovableOval
 from ConfigLoader import ConfigLoader
 
 
 WIDTH_BUTTON = 7
-SIZE_CANVAS = 400
+SIZE_CANVAS = 320
 SIZE_CONT = 15
 FONT = ('游ゴシック', 16)
 
@@ -53,34 +54,38 @@ class Application(tk.Frame):
 
     def open_port(self):
         if self.cl.mode == 'RELEASE':
-            self.ser = MySerial(self.cl.port, self.cl.baudrate, write_timeout=0)
-            self.device = DS102Controller(self.ser)
+            self.ser_stage = MySerial(self.cl.port_stage, self.cl.baudrate_stage, write_timeout=0)
+            self.stage = DS102Controller(self.ser_stage)
+            self.ser_laser = MySerial(self.cl.port_laser, self.cl.baudrate_laser, write_timeout=0)
+            self.laser = PulseLaserController(self.ser_laser)
         elif self.cl.mode == 'DEBUG':
-            self.ser = self.device = None
+            self.stage = self.laser = None
         else:
             raise ValueError('Wrong format in config.json. Mode must be DEBUG or RELEASE.')
 
     def create_widgets(self):
         # 親フレーム
-        self.frame_controller = ttk.Frame(self.master)
+        self.frame_stage = ttk.LabelFrame(self.master, text='STAGE')
+        self.frame_laser = ttk.LabelFrame(self.master, text='PULSE LASER')
         self.button_quit = ttk.Button(self.master, text='QUIT', command=self.quit, style='stop.TButton')
-        self.label_quit = ttk.Label(self.master, text='必ずQUITボタンからプログラムを終了してください')
-        self.frame_controller.grid(row=0, column=0)
-        self.button_quit.grid(row=1, columnspan=2)
-        self.label_quit.grid(row=2, columnspan=2)
+        self.label_quit = ttk.Label(self.master, text='必ずQUITボタンからプログラムを終了')
+        self.frame_stage.grid(row=0, column=0, pady=10)
+        self.frame_laser.grid(row=1, column=0, pady=10)
+        self.button_quit.grid(row=2, columnspan=2, pady=10)
+        self.label_quit.grid(row=3, columnspan=2)
         # 子フレーム
-        self.frame_controller_canvas = ttk.Frame(self.frame_controller)
-        self.frame_controller_buttons = ttk.Frame(self.frame_controller)
-        self.frame_controller_position = ttk.Frame(self.frame_controller)
-        self.frame_controller_command = ttk.Frame(self.frame_controller)
-        self.button_controller_stop = ttk.Button(self.frame_controller, text='STOP ALL STAGES', command=self.stop, style='stop.TButton')
+        self.frame_controller_canvas = ttk.Frame(self.frame_stage)
+        self.frame_controller_buttons = ttk.Frame(self.frame_stage)
+        self.frame_controller_position = ttk.Frame(self.frame_stage)
+        self.frame_controller_command = ttk.Frame(self.frame_stage)
+        self.button_controller_stop = ttk.Button(self.frame_stage, text='STOP ALL STAGES', command=self.stop_stage, style='stop.TButton')
         self.frame_controller_canvas.grid(row=0, column=0)
         self.frame_controller_buttons.grid(row=1, column=0)
         self.frame_controller_position.grid(row=2, column=0)
         self.frame_controller_command.grid(row=3, column=0)
         self.button_controller_stop.grid(row=4, column=0)
         # ウィジェット canvas
-        self.canvas_controller = tk.Canvas(self.frame_controller_canvas, width=SIZE_CANVAS * 0.9, height=SIZE_CANVAS)
+        self.canvas_controller = tk.Canvas(self.frame_controller_canvas, width=SIZE_CANVAS, height=SIZE_CANVAS)
         center = SIZE_CANVAS/2
         r_list = [SIZE_CONT*9, SIZE_CONT*7, SIZE_CONT*5, SIZE_CONT*3, SIZE_CONT*1]
         for i, r in enumerate(r_list):
@@ -98,13 +103,13 @@ class Application(tk.Frame):
         self.button_right = ttk.Button(self.frame_controller_buttons, width=WIDTH_BUTTON, text='→')
         self.button_bottom = ttk.Button(self.frame_controller_buttons, width=WIDTH_BUTTON, text='↓')
         self.button_top.bind('<Button-1>', self.move_top)
-        self.button_top.bind('<ButtonRelease-1>', self.stop)
+        self.button_top.bind('<ButtonRelease-1>', self.stop_stage)
         self.button_left.bind('<Button-1>', self.move_left)
-        self.button_left.bind('<ButtonRelease-1>', self.stop)
+        self.button_left.bind('<ButtonRelease-1>', self.stop_stage)
         self.button_right.bind('<Button-1>', self.move_right)
-        self.button_right.bind('<ButtonRelease-1>', self.stop)
+        self.button_right.bind('<ButtonRelease-1>', self.stop_stage)
         self.button_bottom.bind('<Button-1>', self.move_bottom)
-        self.button_bottom.bind('<ButtonRelease-1>', self.stop)
+        self.button_bottom.bind('<ButtonRelease-1>', self.stop_stage)
         self.button_top.grid(row=0, column=1)
         self.button_left.grid(row=1, column=0)
         self.combobox_xy.grid(row=1, column=1)
@@ -128,6 +133,20 @@ class Application(tk.Frame):
         self.entry_command.grid(row=0, column=0)
         self.button_exec.grid(row=0, column=1)
 
+        # laser
+        self.frq = tk.IntVar(value=30)
+        self.entry_frq = ttk.Entry(self.frame_laser, textvariable=self.frq, width=5, justify=tk.CENTER)
+        self.label_hz = ttk.Label(self.frame_laser, text='Hz')
+        self.button_emit_laser = ttk.Button(self.frame_laser, text='EMIT', command=self.emit)
+        self.button_stop_laser = ttk.Button(self.frame_laser, text='STOP', command=self.stop_laser, style='stop.TButton')
+        self.msg_laser = tk.StringVar(value='Now: 0 Hz (available range: 16~10000 Hz)')
+        self.label_msg_frq = ttk.Label(self.frame_laser, textvariable=self.msg_laser)
+        self.entry_frq.grid(row=0, column=0)
+        self.label_hz.grid(row=0, column=1)
+        self.button_emit_laser.grid(row=0, column=2)
+        self.button_stop_laser.grid(row=0, column=3)
+        self.label_msg_frq.grid(row=1, column=0, columnspan=4)
+
     def create_thread(self):
         # update_positionの受信待ちで画面がフリーズしないようthreadを立てる
         self.thread = threading.Thread(target=self.update_position)
@@ -136,7 +155,8 @@ class Application(tk.Frame):
 
     def quit(self):
         if self.cl.mode == 'RELEASE':
-            self.ser.close()
+            self.ser_stage.close()
+            self.ser_laser.close()
         self.master.destroy()
         sys.exit()  # デーモン化してあるスレッドはここで死ぬ
 
@@ -156,7 +176,7 @@ class Application(tk.Frame):
         if self.rank_pre != self.oval.get_rank() or self.direction_pre != self.oval.get_direction():
             # バグで方向が転換できないことがあるので、一度止めるようにする
             if self.direction_pre != self.oval.get_direction():
-                self.stop()
+                self.stop_stage()
             if self.oval.direction[0] > 0:
                 self.move_right()
             elif self.oval.direction[0] < 0:
@@ -169,7 +189,7 @@ class Application(tk.Frame):
     def check_and_stop(self):
         # 前回までは動く命令、今回止まる命令が出ていればstopを呼び出す
         if self.rank_pre != 0 and self.oval.get_rank() == 0:
-            self.stop()
+            self.stop_stage()
 
     def move_right(self, event=None):
         # event is None: 図形操作から呼ばれた
@@ -184,7 +204,7 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print(f'move right by {vel} \u03bcm/s')
         else:
-            self.device.move_velocity('x', vel)
+            self.stage.move_velocity('x', vel)
 
     def move_left(self, event=None):
         # event is None: 図形操作から呼ばれた
@@ -199,7 +219,7 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print(f'move left by {vel} \u03bcm/s')
         else:
-            self.device.move_velocity('x', vel)
+            self.stage.move_velocity('x', vel)
 
     def move_top(self, event=None):
         # pulse laserではy軸の向きが下向き
@@ -215,7 +235,7 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print(f'move top by {vel} \u03bcm/s')
         else:
-            self.device.move_velocity('y', vel)
+            self.stage.move_velocity('y', vel)
 
     def move_bottom(self, event=None):
         # pulse laserではy軸の向きが下向き
@@ -231,14 +251,14 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print(f'move bottom by {vel} \u03bcm/s')
         else:
-            self.device.move_velocity('y', vel)
+            self.stage.move_velocity('y', vel)
 
-    def stop(self, event=None):
+    def stop_stage(self, event=None):
         # xy方向に停止命令を出す
         if self.cl.mode == 'DEBUG':
             print('stop xy')
         else:
-            self.device.stop()
+            self.stage.stop()
 
     def update_position(self):
         # 現在位置を更新
@@ -248,7 +268,7 @@ class Application(tk.Frame):
                 self.x_cur.set(round(self.x_cur.get() + 0.015, 3))
                 self.y_cur.set(round(self.y_cur.get() + 0.015, 3))
             else:
-                x, y = self.device.get_position()
+                x, y = self.stage.get_position()
                 self.x_cur.set(round(x * 1000, 3))  # umに変換
                 self.y_cur.set(round(y * 1000, 3))  # umに変換
             time.sleep(self.cl.dt * 0.001)
@@ -283,7 +303,7 @@ class Application(tk.Frame):
             try:
                 x = float(command[1])
                 y = float(command[2])
-            except  ValueError:
+            except ValueError:
                 command_is_ok = False
             # 速度
             if len(command) == 4:
@@ -305,7 +325,7 @@ class Application(tk.Frame):
             return
 
         x0, y0 = self.x_cur.get(), self.y_cur.get()
-        self.device.set_velocity_all(vel)
+        self.stage.set_velocity_all(vel)
 
         if shape == 'line':
             points = [[x0 + x, y0 - y]]  # この系のy軸は下向きが正
@@ -320,8 +340,25 @@ class Application(tk.Frame):
             return
 
         for (x, y), delay in zip(points, delays):
-            self.device.move_line(x * 0.001, y * 0.001)
+            self.stage.move_line(x * 0.001, y * 0.001)
             time.sleep(delay + 0.3)
+
+    def emit(self):
+        self.set_frq()
+
+    def set_frq(self):
+        frq = self.frq.get()
+        if not 16 <= frq <= 10000:
+            self.msg_laser.set('Frequency must be 16~10000 Hz.')
+            return
+        if self.cl.mode == 'RELEASE':
+            self.laser.set_frq(frq)
+        self.msg_laser.set(f'Now: {frq} Hz (available range: 16~10000 Hz)')
+
+    def stop_laser(self):
+        if self.cl.mode == 'RELEASE':
+            self.laser.stop()
+        self.msg_laser.set('Now: 0 Hz (available range: 16~10000 Hz)')
 
 
 def main():
