@@ -130,8 +130,8 @@ class Application(tk.Frame):
         self.label_y.grid(row=1, column=0)
         self.label_y_cur.grid(row=1, column=1)
         # ウィジェット command
-        self.command = tk.StringVar(value='rectangle, 10, 10')
-        self.entry_command = ttk.Entry(self.frame_controller_command, textvariable=self.command)
+        self.command = tk.StringVar(value='rectangle, 10, 20, 100')
+        self.entry_command = ttk.Entry(self.frame_controller_command, textvariable=self.command, justify=tk.CENTER)
         self.button_exec = ttk.Button(self.frame_controller_command, command=self.exec_command, text='EXEC')
         self.entry_command.grid(row=0, column=0)
         self.button_exec.grid(row=0, column=1)
@@ -142,7 +142,7 @@ class Application(tk.Frame):
         self.label_hz = ttk.Label(self.frame_laser, text='Hz')
         self.button_emit_laser = ttk.Button(self.frame_laser, text='EMIT', command=self.emit)
         self.button_stop_laser = ttk.Button(self.frame_laser, text='STOP', command=self.stop_laser, style='stop.TButton')
-        self.msg_laser = tk.StringVar(value='Now: 0 Hz (available range: 16~10000 Hz)')
+        self.msg_laser = tk.StringVar(value='Now: 0 Hz (available: 16~10000 Hz)')
         self.label_msg_frq = ttk.Label(self.frame_laser, textvariable=self.msg_laser)
         self.is_auto_emission = tk.BooleanVar(value=False)
         self.check_auto_emission = tk.Checkbutton(self.frame_laser, text="Auto Emission", command=self.change_auto_emission, variable=self.is_auto_emission)
@@ -161,6 +161,8 @@ class Application(tk.Frame):
 
     def quit(self):
         if self.cl.mode == 'RELEASE':
+            self.stop_stage()
+            self.stop_laser()
             self.ser_stage.close()
             self.ser_laser.close()
         self.master.destroy()
