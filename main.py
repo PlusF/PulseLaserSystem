@@ -6,6 +6,9 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+
+import serial
+
 from DS102Controller import MySerial, DS102Controller
 from PulseLaserController import PulseLaserController
 from CustomTkObject import MovableOval
@@ -56,7 +59,7 @@ class Application(tk.Frame):
         if self.cl.mode == 'RELEASE':
             self.ser_stage = MySerial(self.cl.port_stage, self.cl.baudrate_stage, write_timeout=0)
             self.stage = DS102Controller(self.ser_stage)
-            self.ser_laser = MySerial(self.cl.port_laser, self.cl.baudrate_laser, write_timeout=0)
+            self.ser_laser = serial.Serial(self.cl.port_laser, self.cl.baudrate_laser, write_timeout=0)
             self.laser = PulseLaserController(self.ser_laser)
         elif self.cl.mode == 'DEBUG':
             self.stage = self.laser = None
@@ -348,7 +351,7 @@ class Application(tk.Frame):
                       [x0 + x, y0 - y],  # この系のy軸は下向きが正
                       [x0, y0 - y],  # この系のy軸は下向きが正
                       [x0, y0]]
-            delays = [max(abs(x), abs(y)) / vel]
+            delays = [abs(x) / vel, abs(y) / vel, abs(x) / vel, abs(y) / vel]
         else:
             return
 

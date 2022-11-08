@@ -2,7 +2,7 @@
   "mode": "DEBUG",
   "FPS": 3,
   "PORT-stage": 13,
-  "PORT-laser": 6,
+  "PORT-laser": 9,
   "BAUDRATE-stage": 38400,
   "BAUDRATE-laser": 9600,
   "VEL_LIST": [0, 1, 10, 100, 1000]
