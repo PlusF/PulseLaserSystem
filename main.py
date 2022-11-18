@@ -119,8 +119,8 @@ class Application(tk.Frame):
         self.button_right.grid(row=1, column=2)
         self.button_bottom.grid(row=2, column=1)
         # ウィジェット position
-        self.x_cur = tk.DoubleVar(value=0)
-        self.y_cur = tk.DoubleVar(value=0)
+        self.x_cur = tk.IntVar(value=0)
+        self.y_cur = tk.IntVar(value=0)
         self.label_x = ttk.Label(self.frame_controller_position, text='X [\u03bcm]')
         self.label_y = ttk.Label(self.frame_controller_position, text='Y [\u03bcm]')
         self.label_x_cur = ttk.Label(self.frame_controller_position, textvariable=self.x_cur)
@@ -199,12 +199,26 @@ class Application(tk.Frame):
         if self.rank_pre != 0 and self.oval.get_rank() == 0:
             self.stop_stage()
 
+    def get_velocity(self):
+        # entryに何も入っていないとエラーになってしまうので例外処理
+        try:
+            vel = self.vel.get()
+        except tk.TclError:
+            vel = 1
+        if vel <= 0:
+            self.vel.set(1)
+            vel = 1
+        else:
+            self.vel.set(25000)
+            vel = 25000
+        return vel
+
     def move_right(self, event=None):
         # event is None: 図形操作から呼ばれた
         if event is None:
             vel = self.cl.vel_list[self.oval.get_rank()]
         else:
-            vel = self.vel.get()
+            vel = self.get_velocity()
 
         if vel == 0:
             return
@@ -221,7 +235,7 @@ class Application(tk.Frame):
         if event is None:
             vel = -self.cl.vel_list[self.oval.get_rank()]
         else:
-            vel = -self.vel.get()
+            vel = -self.get_velocity()
 
         if vel == 0:
             return
@@ -239,7 +253,7 @@ class Application(tk.Frame):
         if event is None:
             vel = -self.cl.vel_list[self.oval.get_rank()]
         else:
-            vel = -self.vel.get()
+            vel = -self.get_velocity()
 
         if vel == 0:
             return
@@ -257,7 +271,7 @@ class Application(tk.Frame):
         if event is None:
             vel = self.cl.vel_list[self.oval.get_rank()]
         else:
-            vel = self.vel.get()
+            vel = self.get_velocity()
 
         if vel == 0:
             return
@@ -283,12 +297,12 @@ class Application(tk.Frame):
         # シリアル通信で受信する必要があるため，mainloopとは別threadで処理する．
         while True:
             if self.cl.mode == 'DEBUG':
-                self.x_cur.set(round(self.x_cur.get() + 0.015, 3))
-                self.y_cur.set(round(self.y_cur.get() + 0.015, 3))
+                self.x_cur.set(int(self.x_cur.get() + 15))
+                self.y_cur.set(int(self.y_cur.get() + 15))
             else:
                 x, y = self.stage.get_position()
-                self.x_cur.set(round(x * 1000, 3))  # umに変換
-                self.y_cur.set(round(y * 1000, 3))  # umに変換
+                self.x_cur.set(int(x * 1000))  # umに変換
+                self.y_cur.set(int(y * 1000))  # umに変換
             time.sleep(self.cl.dt * 0.001)
 
     def exec_command(self):

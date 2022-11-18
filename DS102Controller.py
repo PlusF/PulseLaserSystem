@@ -69,6 +69,10 @@ class DS102Controller:
         :type vel: int
         :return:
         """
+        if not 0 < vel <= 25000:
+            print(f'Invalid velocity: {vel}. It must be 1~25000.')
+            return
+
         msg = axis2msg(axis) + f'Fspeed0 {vel}'
         self.ser.send(msg)
 
@@ -87,7 +91,7 @@ class DS102Controller:
         set Fspeed0 vel all
         :return:
         """
-        self.set_velocity_all(999999)  # TODO: ほんとか？
+        self.set_velocity_all(25000)  # TODO: ほんとか？
 
     def select_speed_table(self, axis: str, speed: int):
         """
