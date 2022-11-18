@@ -200,3 +200,27 @@ class DS102Controller:
                 pos_axis = 0
             pos.append(pos_axis)
         return pos
+
+    def set_position(self, axis: str, pos: float):
+        """
+        set x and y position
+        the unit is mm
+        :param axis: 'x' or 'y'
+        :param pos: position to set [mm]
+        :return:
+        """
+        msg = axis2msg(axis) + f'POS {pos}'
+        self.ser.send(msg)
+
+    def check_limit(self, axis: str):
+        """
+        check if the current position of selected axis is on the limit
+        :param axis: 'x' or 'y'
+        :return: boolean
+        """
+        msg = axis2msg(axis) + 'LIMIT?'
+        self.ser.send(msg)
+        ans = int(self.ser.recv())
+        if ans > 0:  # 1, 2 or 3
+            return True
+        return False

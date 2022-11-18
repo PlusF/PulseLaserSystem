@@ -51,7 +51,9 @@ class Application(tk.Frame):
         self.rank_pre = 0
         self.direction_pre = [0, 0]
 
-        self.create_thread()
+        self.is_limit = [False, False]
+
+        self.create_thread_pos()
 
         self.update()
 
@@ -125,10 +127,14 @@ class Application(tk.Frame):
         self.label_y = ttk.Label(self.frame_controller_position, text='Y [\u03bcm]')
         self.label_x_cur = ttk.Label(self.frame_controller_position, textvariable=self.x_cur)
         self.label_y_cur = ttk.Label(self.frame_controller_position, textvariable=self.y_cur)
+        self.button_set_origin = ttk.Button(self.frame_controller_position, text='SET ORG', command=self.set_origin)
+        self.button_reset = ttk.Button(self.frame_controller_position, text='RESET', command=self.create_thread_reset)
         self.label_x.grid(row=0, column=0)
         self.label_x_cur.grid(row=0, column=1)
         self.label_y.grid(row=1, column=0)
         self.label_y_cur.grid(row=1, column=1)
+        self.button_set_origin.grid(row=0, column=2, rowspan=2)
+        self.button_reset.grid(row=0, column=3, rowspan=2)
         # ウィジェット command
         self.command = tk.StringVar(value='rectangle, 10, 20, 100')
         self.entry_command = ttk.Entry(self.frame_controller_command, textvariable=self.command, justify=tk.CENTER)
@@ -153,11 +159,17 @@ class Application(tk.Frame):
         self.label_msg_frq.grid(row=1, column=0, columnspan=4)
         self.check_auto_emission.grid(row=2, column=0, columnspan=4)
 
-    def create_thread(self):
+    def create_thread_pos(self):
         # update_positionの受信待ちで画面がフリーズしないようthreadを立てる
-        self.thread = threading.Thread(target=self.update_position)
-        self.thread.daemon = True
-        self.thread.start()
+        self.thread_pos = threading.Thread(target=self.update_position)
+        self.thread_pos.daemon = True
+        self.thread_pos.start()
+
+    def create_thread_reset(self):
+        if messagebox.askyesno('確認', '機械原点を(0, 0)にしますか？'):
+            self.thread_reset = threading.Thread(target=self.reset_origin)
+            self.thread_reset.daemon = True
+            self.thread_reset.start()
 
     def quit(self):
         if self.cl.mode == 'RELEASE':
@@ -204,84 +216,48 @@ class Application(tk.Frame):
         try:
             vel = self.vel.get()
         except tk.TclError:
+            self.vel.set(1)
             vel = 1
         if vel <= 0:
             self.vel.set(1)
             vel = 1
-        else:
+        elif vel > 25000:
             self.vel.set(25000)
             vel = 25000
         return vel
 
     def move_right(self, event=None):
-        # event is None: 図形操作から呼ばれた
-        if event is None:
-            vel = self.cl.vel_list[self.oval.get_rank()]
-        else:
-            vel = self.get_velocity()
-
-        if vel == 0:
-            return
-
-        if self.cl.mode == 'DEBUG':
-            print(f'move right by {vel} \u03bcm/s')
-        else:
-            if self.is_auto_emission.get():  # 自動照射モード
-                self.emit()
-            self.stage.move_velocity('x', vel)
+        self.move('x', 1, event)
 
     def move_left(self, event=None):
-        # event is None: 図形操作から呼ばれた
-        if event is None:
-            vel = -self.cl.vel_list[self.oval.get_rank()]
-        else:
-            vel = -self.get_velocity()
-
-        if vel == 0:
-            return
-
-        if self.cl.mode == 'DEBUG':
-            print(f'move left by {vel} \u03bcm/s')
-        else:
-            if self.is_auto_emission.get():  # 自動照射モード
-                self.emit()
-            self.stage.move_velocity('x', vel)
+        self.move('x', -1, event)
 
     def move_top(self, event=None):
         # pulse laserではy軸の向きが下向き
-        # event is None: 図形操作から呼ばれた
-        if event is None:
-            vel = -self.cl.vel_list[self.oval.get_rank()]
-        else:
-            vel = -self.get_velocity()
-
-        if vel == 0:
-            return
-
-        if self.cl.mode == 'DEBUG':
-            print(f'move top by {vel} \u03bcm/s')
-        else:
-            if self.is_auto_emission.get():  # 自動照射モード
-                self.emit()
-            self.stage.move_velocity('y', vel)
+        self.move('y', -1, event)
 
     def move_bottom(self, event=None):
         # pulse laserではy軸の向きが下向き
+        self.move('y', 1, event)
+
+    def move(self, axis: str, direction: int, event = None):
         # event is None: 図形操作から呼ばれた
         if event is None:
             vel = self.cl.vel_list[self.oval.get_rank()]
         else:
             vel = self.get_velocity()
 
+        vel *= direction  # direction is 1 or -1
+
         if vel == 0:
             return
 
         if self.cl.mode == 'DEBUG':
-            print(f'move bottom by {vel} \u03bcm/s')
+            print(f'move {axis} by {vel} \u03bcm/s')
         else:
             if self.is_auto_emission.get():  # 自動照射モード
                 self.emit()
-            self.stage.move_velocity('y', vel)
+            self.stage.move_velocity(axis, vel)
 
     def stop_stage(self, event=None):
         # xy方向に停止命令を出す
@@ -302,8 +278,27 @@ class Application(tk.Frame):
             else:
                 x, y = self.stage.get_position()
                 self.x_cur.set(int(x * 1000))  # umに変換
-                self.y_cur.set(int(y * 1000))  # umに変換
+                self.y_cur.set(-int(y * 1000))  # umに変換, yは下向きだが、ユーザーは気にせず動かせるようにする
             time.sleep(self.cl.dt * 0.001)
+
+    def set_origin(self):
+        if self.cl.mode == 'DEBUG':
+            print('set origin')
+        elif self.cl.mode == 'RELEASE':
+            for axis in ['x', 'y']:
+                self.stage.set_position(axis, 0)
+
+    def reset_origin(self):
+        if self.cl.mode == 'DEBUG':
+            print('reset origin')
+        elif self.cl.mode == 'RELEASE':
+            for axis in ['x', 'y']:
+                self.stage.move_velocity(axis, 25000)
+                while not self.is_limit[0]:  # limitの判定はupdate_position内で取得している
+                    time.sleep(self.cl.dt * 0.001)
+                self.stage.set_position(axis, 7.35)  # 大体14.7mmが駆動範囲
+                self.stage.move_abs(axis, 0)  # 原点に戻す
+                time.sleep(3)
 
     def exec_command(self):
         command_is_ok, command = self.check_command()
