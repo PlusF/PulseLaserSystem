@@ -170,15 +170,15 @@ class Application(tk.Frame):
 
     def create_thread_pos(self):
         # update_positionの受信待ちで画面がフリーズしないようthreadを立てる
-        self.thread_pos = threading.Thread(target=self.update_position)
-        self.thread_pos.daemon = True
-        self.thread_pos.start()
+        thread_pos = threading.Thread(target=self.update_position)
+        thread_pos.daemon = True
+        thread_pos.start()
 
     def create_thread_reset(self):
         if messagebox.askyesno('確認', '機械原点を(0, 0)にしますか？'):
-            self.thread_reset = threading.Thread(target=self.reset_origin)
-            self.thread_reset.daemon = True
-            self.thread_reset.start()
+            thread_reset = threading.Thread(target=self.reset_origin)
+            thread_reset.daemon = True
+            thread_reset.start()
 
     def quit(self):
         if self.cl.mode == 'RELEASE':
