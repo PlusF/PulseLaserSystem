@@ -6,9 +6,7 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-
 import serial
-
 from DS102Controller import MySerial, DS102Controller
 from PulseLaserController import PulseLaserController
 from CustomTkObject import MovableOval
@@ -128,13 +126,11 @@ class Application(tk.Frame):
         self.label_x_cur = ttk.Label(self.frame_controller_position, textvariable=self.x_cur)
         self.label_y_cur = ttk.Label(self.frame_controller_position, textvariable=self.y_cur)
         self.button_set_origin = ttk.Button(self.frame_controller_position, text='SET ORG', command=self.set_origin)
-        self.button_reset = ttk.Button(self.frame_controller_position, text='RESET', command=self.create_thread_reset)
         self.label_x.grid(row=0, column=0)
         self.label_x_cur.grid(row=0, column=1)
         self.label_y.grid(row=1, column=0)
         self.label_y_cur.grid(row=1, column=1)
         self.button_set_origin.grid(row=0, column=2, rowspan=2)
-        self.button_reset.grid(row=0, column=3, rowspan=2)
         # ウィジェット command
         self.command = tk.StringVar(value='rectangle, 10, 20, 100')
         self.entry_command = ttk.Entry(self.frame_controller_command, textvariable=self.command, justify=tk.CENTER)
@@ -158,6 +154,19 @@ class Application(tk.Frame):
         self.button_stop_laser.grid(row=0, column=3)
         self.label_msg_frq.grid(row=1, column=0, columnspan=4)
         self.check_auto_emission.grid(row=2, column=0, columnspan=4)
+
+        # menu bar
+        men = tk.Menu(self.master)
+        self.master.config(menu=men)
+        menu_setting = tk.Menu(self.master)
+        men.add_cascade(label='Setting', menu=menu_setting)
+        menu_setting.add_command(label='Open Config File', command=lambda: print('IMPLEMENT ME'))
+        menu_tool = tk.Menu(self.master)
+        men.add_cascade(label='Tool', menu=menu_tool)
+        menu_tool.add_command(label='Reset Origin', command=self.reset_origin)
+        menu_help = tk.Menu(self.master)
+        men.add_cascade(label='Help', menu=menu_help)
+        menu_help.add_command(label='Manual', command=lambda: print('IMPLEMENT ME'))
 
     def create_thread_pos(self):
         # update_positionの受信待ちで画面がフリーズしないようthreadを立てる
