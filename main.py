@@ -163,7 +163,7 @@ class Application(tk.Frame):
         menu_setting.add_command(label='Open Config File', command=lambda: print('IMPLEMENT ME'))
         menu_tool = tk.Menu(self.master)
         men.add_cascade(label='Tool', menu=menu_tool)
-        menu_tool.add_command(label='Reset Origin', command=self.reset_origin)
+        menu_tool.add_command(label='Reset Origin', command=self.create_thread_reset)
         menu_help = tk.Menu(self.master)
         men.add_cascade(label='Help', menu=menu_help)
         menu_help.add_command(label='Manual', command=lambda: print('IMPLEMENT ME'))
@@ -288,6 +288,7 @@ class Application(tk.Frame):
                 x, y = self.stage.get_position()
                 self.x_cur.set(int(x * 1000))  # umに変換
                 self.y_cur.set(-int(y * 1000))  # umに変換, yは下向きだが、ユーザーは気にせず動かせるようにする
+                self.is_limit = self.stage.check_limit_all()  # 現在位置が機械限界か判定する
             time.sleep(self.cl.dt * 0.001)
 
     def set_origin(self):
@@ -301,9 +302,9 @@ class Application(tk.Frame):
         if self.cl.mode == 'DEBUG':
             print('reset origin')
         elif self.cl.mode == 'RELEASE':
-            for axis in ['x', 'y']:
+            for i, axis in enumerate(['x', 'y']):
                 self.stage.move_velocity(axis, 25000)
-                while not self.is_limit[0]:  # limitの判定はupdate_position内で取得している
+                while not self.is_limit[i]:  # limitの判定はupdate_position内で取得している
                     time.sleep(self.cl.dt * 0.001)
                 self.stage.set_position(axis, 7.35)  # 大体14.7mmが駆動範囲
                 self.stage.move_abs(axis, 0)  # 原点に戻す
@@ -360,7 +361,7 @@ class Application(tk.Frame):
             print(shape, x, y, vel)
             return
 
-        x0, y0 = self.x_cur.get(), self.y_cur.get()
+        x0, y0 = self.x_cur.get(), -self.y_cur.get()
         self.stage.set_velocity_all(vel)
 
         if shape == 'line':
@@ -418,8 +419,6 @@ def main():
     root.protocol('WM_DELETE_WINDOW', (lambda: 'pass')())  # QUITボタン以外の終了操作を許可しない
     app = Application(master=root, config='./config.json')
     app.mainloop()
-
-    print('Successfully finished the controller program.')
 
 
 if __name__ == '__main__':

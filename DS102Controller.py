@@ -224,3 +224,11 @@ class DS102Controller:
         if ans > 0:  # 1, 2 or 3
             return True
         return False
+
+    def check_limit_all(self):
+        """
+        check if the current position is on the limit
+        :param
+        :return: list of boolean
+        """
+        return [self.check_limit('x'), self.check_limit('y')]
