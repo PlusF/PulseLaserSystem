@@ -11,6 +11,7 @@ from DS102Controller import MySerial, DS102Controller
 from PulseLaserController import PulseLaserController
 from CustomTkObject import MovableOval
 from ConfigLoader import ConfigLoader
+from CommandWindow import CommandWindow
 
 
 WIDTH_BUTTON = 7
@@ -132,11 +133,11 @@ class Application(tk.Frame):
         label_y_cur.grid(row=1, column=1)
         button_set_origin.grid(row=0, column=2, rowspan=2)
         # ウィジェット command
-        self.command = tk.StringVar(value='rectangle, 10, 20, 100')
-        entry_command = ttk.Entry(frame_controller_command, textvariable=self.command, justify=tk.CENTER)
-        button_exec = ttk.Button(frame_controller_command, command=self.exec_command, text='EXEC')
-        entry_command.grid(row=0, column=0)
-        button_exec.grid(row=0, column=1)
+        # self.command = tk.StringVar(value='rectangle, 10, 20, 100')
+        # entry_command = ttk.Entry(frame_controller_command, textvariable=self.command, justify=tk.CENTER)
+        # button_exec = ttk.Button(frame_controller_command, command=self.exec_command, text='EXEC')
+        # entry_command.grid(row=0, column=0)
+        # button_exec.grid(row=0, column=1)
 
         # laser
         self.frq = tk.IntVar(value=30)
@@ -156,16 +157,20 @@ class Application(tk.Frame):
         check_auto_emission.grid(row=2, column=0, columnspan=4)
 
         # menu bar
-        men = tk.Menu(self.master)
-        self.master.config(menu=men)
-        menu_setting = tk.Menu(self.master)
-        men.add_cascade(label='Setting', menu=menu_setting)
+        menu_bar = tk.Menu(self.master, tearoff=False)
+        self.master.config(menu=menu_bar)
+
+        menu_setting = tk.Menu(menu_bar, tearoff=False)
+        menu_bar.add_cascade(label='Setting', menu=menu_setting)
         menu_setting.add_command(label='Open Config File', command=lambda: print('IMPLEMENT ME'))
-        menu_tool = tk.Menu(self.master)
-        men.add_cascade(label='Tool', menu=menu_tool)
+
+        menu_tool = tk.Menu(menu_bar, tearoff=False)
+        menu_bar.add_cascade(label='Tool', menu=menu_tool)
+        menu_tool.add_command(label='Command Mode', command=self.open_command_window)
         menu_tool.add_command(label='Reset Origin', command=self.create_thread_reset)
-        menu_help = tk.Menu(self.master)
-        men.add_cascade(label='Help', menu=menu_help)
+
+        menu_help = tk.Menu(menu_bar, tearoff=False)
+        menu_bar.add_cascade(label='Help', menu=menu_help)
         menu_help.add_command(label='Manual', command=lambda: print('IMPLEMENT ME'))
 
     def create_thread_pos(self):
@@ -310,82 +315,6 @@ class Application(tk.Frame):
                 self.stage.move_abs(axis, 0)  # 原点に戻す
                 time.sleep(3)
 
-    def exec_command(self):
-        command_is_ok, command = self.check_command()
-        if not command_is_ok:
-            messagebox.showerror('エラー', '無効なコマンドです')
-            return
-
-        shape, x, y, vel = command
-        msg = f'x: {x} um, y: {y} um の {shape}を速度 {vel} um/s で描きます。'
-        ok = messagebox.askyesno('確認', msg)
-
-        if ok:
-            thread = threading.Thread(target=self.move_shape, args=tuple(command))
-            thread.daemon = True
-            thread.start()
-
-    def check_command(self):
-        command = self.command.get().split(',')
-        command = list(map(lambda s: s.strip(), command))
-        command_is_ok = True
-        x, y = 0, 0
-        vel = 10
-        # 形から違う
-        if command[0] not in ['line', 'rectangle'] or len(command) < 3 or 4 < len(command):
-            command_is_ok = False
-        else:
-            # 値が無効
-            # 座標
-            try:
-                x = float(command[1])
-                y = float(command[2])
-            except ValueError:
-                command_is_ok = False
-            # 速度
-            if len(command) == 4:
-                try:
-                    vel = int(command[3])
-                except ValueError:
-                    command_is_ok = False
-                if vel < 1 or 100000 < vel:
-                    command_is_ok = False
-
-        if command_is_ok:
-            return True, [command[0], x, y, vel]
-        else:
-            return False, None
-
-    def move_shape(self, shape, x, y, vel):
-        if self.cl.mode == 'DEBUG':
-            print(shape, x, y, vel)
-            return
-
-        x0, y0 = self.x_cur.get(), -self.y_cur.get()
-        self.stage.set_velocity_all(vel)
-
-        if shape == 'line':
-            points = [[x0 + x, y0 - y]]  # この系のy軸は下向きが正
-            delays = [max(abs(x), abs(y)) / vel]
-        elif shape == 'rectangle':
-            points = [[x0 + x, y0],
-                      [x0 + x, y0 - y],  # この系のy軸は下向きが正
-                      [x0, y0 - y],  # この系のy軸は下向きが正
-                      [x0, y0]]
-            delays = [abs(x) / vel, abs(y) / vel, abs(x) / vel, abs(y) / vel]
-        else:
-            return
-
-        if self.is_auto_emission.get():  # 自動照射モード
-            self.emit()
-
-        for (x, y), delay in zip(points, delays):
-            self.stage.move_line(x * 0.001, y * 0.001)
-            time.sleep(delay + 0.3)
-
-        if self.is_auto_emission.get():  # 自動照射モード
-            self.stop_laser()
-
     def emit(self):
         frq = self.frq.get()
         if not 16 <= frq <= 10000:
@@ -411,6 +340,10 @@ class Application(tk.Frame):
         else:
             self.button_emit_laser.config(state=tk.ACTIVE)
             self.button_stop_laser.config(state=tk.ACTIVE)
+
+    def open_command_window(self):
+        sub_win = CommandWindow(self, self.cl, self.stage, self.laser)
+        # sub_win.geometry("300x100")
 
 
 def main():
