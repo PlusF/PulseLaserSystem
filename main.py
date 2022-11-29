@@ -132,12 +132,6 @@ class Application(tk.Frame):
         label_y.grid(row=1, column=0)
         label_y_cur.grid(row=1, column=1)
         button_set_origin.grid(row=0, column=2, rowspan=2)
-        # ウィジェット command
-        # self.command = tk.StringVar(value='rectangle, 10, 20, 100')
-        # entry_command = ttk.Entry(frame_controller_command, textvariable=self.command, justify=tk.CENTER)
-        # button_exec = ttk.Button(frame_controller_command, command=self.exec_command, text='EXEC')
-        # entry_command.grid(row=0, column=0)
-        # button_exec.grid(row=0, column=1)
 
         # laser
         self.frq = tk.IntVar(value=30)
@@ -342,8 +336,7 @@ class Application(tk.Frame):
             self.button_stop_laser.config(state=tk.ACTIVE)
 
     def open_command_window(self):
-        sub_win = CommandWindow(self, self.cl, self.stage, self.laser)
-        # sub_win.geometry("300x100")
+        CommandWindow(self, self.cl, self.stage, self.laser)
 
 
 def main():
