@@ -134,7 +134,7 @@ class Application(tk.Frame):
         button_set_origin.grid(row=0, column=2, rowspan=2)
 
         # laser
-        self.frq = tk.IntVar(value=30)
+        self.frq = tk.IntVar(value=100)
         entry_frq = ttk.Entry(frame_laser, textvariable=self.frq, width=5, justify=tk.CENTER)
         label_hz = ttk.Label(frame_laser, text='Hz')
         self.button_emit_laser = ttk.Button(frame_laser, text='EMIT', command=self.emit)
@@ -318,16 +318,17 @@ class Application(tk.Frame):
             self.laser.set_frq(frq)
         elif self.cl.mode == 'DEBUG':
             print('Emit')
-        self.msg_laser.set(f'Now: {frq} Hz (available range: 16~10000 Hz)')
+        self.msg_laser.set(f'Now: {frq} Hz (available: 16~10000 Hz)')
 
     def stop_laser(self):
         if self.cl.mode == 'RELEASE':
             self.laser.stop()
         elif self.cl.mode == 'DEBUG':
             print('Stop laser')
-        self.msg_laser.set('Now: 0 Hz (available range: 16~10000 Hz)')
+        self.msg_laser.set('Now: 0 Hz (available: 16~10000 Hz)')
 
     def change_auto_emission(self):
+        self.stop_laser()
         if self.is_auto_emission.get():
             self.button_emit_laser.config(state=tk.DISABLED)
             self.button_stop_laser.config(state=tk.DISABLED)

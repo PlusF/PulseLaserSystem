@@ -6,7 +6,7 @@ import threading
 
 WIDTH = 300
 HEIGHT = 300
-WIDTH_ENTRY = 7
+WIDTH_ENTRY = 5
 
 
 class CommandWindow(tk.Toplevel):
@@ -19,6 +19,7 @@ class CommandWindow(tk.Toplevel):
 
         self.create_widgets()
 
+        self.update_canvas()
         self.bind('<Key>', self.update_canvas)
 
     def create_widgets(self):
@@ -34,19 +35,19 @@ class CommandWindow(tk.Toplevel):
         label_y = ttk.Label(frame_setting, text='Y [\u03bcm]')
         self.x = tk.IntVar(value=100)
         self.y = tk.IntVar(value=100)
-        entry_x = ttk.Entry(frame_setting, textvariable=self.x, width=WIDTH_ENTRY)
-        entry_y = ttk.Entry(frame_setting, textvariable=self.y, width=WIDTH_ENTRY)
+        entry_x = ttk.Entry(frame_setting, textvariable=self.x, width=WIDTH_ENTRY, justify=tk.RIGHT)
+        entry_y = ttk.Entry(frame_setting, textvariable=self.y, width=WIDTH_ENTRY, justify=tk.RIGHT)
         label_vel = ttk.Label(frame_setting, text='Vel [\u03bcm/s]')
         self.vel = tk.IntVar(value=100)
-        entry_vel = ttk.Entry(frame_setting, textvariable=self.vel, width=WIDTH_ENTRY)
+        entry_vel = ttk.Entry(frame_setting, textvariable=self.vel, width=WIDTH_ENTRY, justify=tk.RIGHT)
         self.is_filled = tk.BooleanVar(value=False)
         self.check_fill = ttk.Checkbutton(frame_setting, text="Fill", command=self.update, variable=self.is_filled, state=tk.DISABLED)
         self.interval = tk.IntVar(value=5)
-        self.entry_interval = ttk.Entry(frame_setting, textvariable=self.interval, width=WIDTH_ENTRY, state=tk.DISABLED)
+        self.entry_interval = ttk.Entry(frame_setting, textvariable=self.interval, width=WIDTH_ENTRY, state=tk.DISABLED, justify=tk.RIGHT)
         self.label_interval = ttk.Label(frame_setting, text='\u03bcm毎', state=tk.DISABLED)
         self.direction = tk.IntVar(value=0)
-        radio_vertical = ttk.Radiobutton(frame_setting, text="縦", command=self.update, variable=self.direction, value=0)
-        radio_horizontal = ttk.Radiobutton(frame_setting, text="横", command=self.update, variable=self.direction, value=1)
+        self.radio_vertical = ttk.Radiobutton(frame_setting, text="縦", command=self.update, variable=self.direction, value=0, state=tk.DISABLED)
+        self.radio_horizontal = ttk.Radiobutton(frame_setting, text="横", command=self.update, variable=self.direction, value=1, state=tk.DISABLED)
         button_exec = ttk.Button(frame_setting, text='EXEC', command=self.exec_command)
         radio_line.grid(row=0, column=1, sticky='W')
         radio_rect.grid(row=1, column=1, sticky='W')
@@ -59,9 +60,9 @@ class CommandWindow(tk.Toplevel):
         self.check_fill.grid(row=0, column=4, sticky='W')
         self.entry_interval.grid(row=0, column=5, sticky='W')
         self.label_interval.grid(row=0, column=6, sticky='W')
-        radio_vertical.grid(row=1, column=4, sticky='W')
-        radio_horizontal.grid(row=2, column=4, sticky='W')
-        button_exec.grid(row=0, column=7, rowspan=3)
+        self.radio_vertical.grid(row=1, column=5, sticky='E')
+        self.radio_horizontal.grid(row=1, column=6, sticky='W')
+        button_exec.grid(row=2, column=4, columnspan=3)
 
     def update(self):
         if self.shape.get() == 0:
@@ -73,9 +74,13 @@ class CommandWindow(tk.Toplevel):
         if self.is_filled.get():
             self.entry_interval.config(state=tk.ACTIVE)
             self.label_interval.config(state=tk.ACTIVE)
+            self.radio_vertical.config(state=tk.ACTIVE)
+            self.radio_horizontal.config(state=tk.ACTIVE)
         else:
             self.entry_interval.config(state=tk.DISABLED)
             self.label_interval.config(state=tk.DISABLED)
+            self.radio_vertical.config(state=tk.DISABLED)
+            self.radio_horizontal.config(state=tk.DISABLED)
 
         self.update_canvas()
 
@@ -155,7 +160,7 @@ class CommandWindow(tk.Toplevel):
         points, delays, lasers = self.get_points()
 
         if self.cl.mode == 'DEBUG':
-            print('move shape', points)
+            print('move shape')
             return
 
         self.stage.set_velocity_all(self.vel.get())
