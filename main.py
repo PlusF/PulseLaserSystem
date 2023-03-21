@@ -93,7 +93,7 @@ class Application(tk.Frame):
         center = SIZE_CANVAS/2
         r_list = [SIZE_CONT*9, SIZE_CONT*7, SIZE_CONT*5, SIZE_CONT*3, SIZE_CONT*1]
         for i, r in enumerate(r_list):
-            color = get_color_by_float(1 - i / len(r_list))
+            color = get_color_by_float(i / len(r_list))
             canvas_controller.create_oval(center - r, center - r, center + r, center + r, fill=color)
         MovableOval.canvas = canvas_controller
         MovableOval.thres_list = r_list
