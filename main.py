@@ -285,8 +285,8 @@ class Application(tk.Frame):
                 self.y_cur.set(int(self.y_cur.get() + 15))
             else:
                 x, y = self.stage.get_position()
-                self.x_cur.set(int(x * 1000))  # umに変換
-                self.y_cur.set(-int(y * 1000))  # umに変換, yは下向きだが、ユーザーは気にせず動かせるようにする
+                self.x_cur.set(x)
+                self.y_cur.set(-y)  # yは下向きだが、ユーザーは気にせず動かせるようにする
                 self.is_limit = self.stage.check_limit_all()  # 現在位置が機械限界か判定する
             time.sleep(self.cl.dt * 0.001)
 

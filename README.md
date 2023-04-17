@@ -9,7 +9,7 @@ To controll the XY stage, you can use the joystock-like object or the buttons.
 You can controll the frequency of the pulse laser.
 
 # !Caution
-Make sure the selected IO pin is **10**.
+Make sure that IO pin **10** is selected.
 
 <img src="https://user-images.githubusercontent.com/92524649/200480699-bfec05f5-5d47-49c6-b600-47aab53953e7.jpg" width="300">
 
